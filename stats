@@ -256,18 +256,20 @@ def get_table(vals, do_unicode=True, width=80):
     return tab
 
 if __name__ == "__main__":
-    do_ascii = False
+    do_ascii = not sys.stdout.isatty()
     nums, words = [], []
     column = -1
     if(len(sys.argv) > 1): column = int(sys.argv[-1])
     for item in sys.stdin:
+        item = item.strip()
+        if not item: continue
         try:
-            if(column == -1): nums.append(float(item.strip()))
-            else: nums.append(float(item.strip().split()[column-1]))
-        except: 
+            if(column == -1): nums.append(float(item))
+            else: nums.append(float(item.split()[column-1]))
+        except:
             try:
-                if(column == -1): words.append(item.strip())
-                else: words.append(item.strip().split()[column-1])
+                if(column == -1): words.append(item)
+                else: words.append(item.split()[column-1])
             except: pass
         else: pass
 
@@ -281,9 +283,9 @@ if __name__ == "__main__":
                 get_table(words).print_table(ljustall=True, show_colnames=False)
     else: 
         print("""
-    length: {0} ({6})
+    count:  {0} ({6})
     mean:   {1} ({7})
-    sigma:  {2} ({8})
+    std:    {2} ({8})
     sum:    {3} ({9})
     min:    {4} ({10})
     max:    {5} ({11})
