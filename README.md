@@ -10,7 +10,8 @@ curl -O https://raw.githubusercontent.com/aminnj/stats/main/stats && chmod u+x s
 
 If numbers are detected, count/mean/sum/... are printed out, along with their human readable forms. 
 In order to shortcut piping through `awk '{print $6}'` and allow negative indexing,
-the optional first argument to `stats` specifies the column number
+the optional first argument to `stats` specifies the column number. A `-b` signals that numbers
+are bytes, so base-2 is used instead of base-10 when printing humanized units.
 ```bash
 $ seq 1 10000 | stats
 
@@ -29,6 +30,15 @@ $ hadoop fs -du /cms/store/user/$USER/ | stats 1
     sum:    1.57976686149e+13 (15.8T)
     min:    5207981.0 (5.21M)
     max:    5.34309043154e+12 (5.34T)
+
+$ hadoop fs -du /cms/store/user/$USER/ | stats 1 -b
+
+    length: 26 (26.0)
+    mean:   6.4025619941e+11 (596.29 GiB)
+    sigma:  1.54554065089e+12 (1.41 TiB)
+    sum:    1.66466611847e+13 (15.14 TiB)
+    min:    5207981.0 (4.97 MiB)
+    max:    5.34309043154e+12 (4.86 TiB)
 
 ```
 

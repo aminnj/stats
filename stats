@@ -194,24 +194,30 @@ class Table():
                         if icol != len(row)-1: yield self.d_style["INNER_INTERSECT"]
                     yield self.d_style["OUTER_RIGHT_INTERSECT"]+"\n"
 
-
-def hum(num):
+def hum(num, base2=False):
+    if base2:
+        if num < 1024**1:   return ('%.2f B'   % (num/1024**0))
+        elif num < 1024**2: return ('%.2f KiB' % (num/1024**1))
+        elif num < 1024**3: return ('%.2f MiB' % (num/1024**2))
+        elif num < 1024**4: return ('%.2f GiB' % (num/1024**3))
+        elif num < 1024**5: return ('%.2f TiB' % (num/1024**4))
+        elif num < 1024**6: return ('%.2f PiB' % (num/1024**5))
+        else: return '%.3g' % num
     # stolen from http://stackoverflow.com/questions/17973278/python-decimal-engineering-notation-for-mili-10e-3-and-micro-10e-6
     sgn = ''
     if num < 0: num, sgn = -num, '-'
-
     try: exp = int(math.floor(math.log10(num)))
     except: exp = 0
-
     exp3 = exp-(exp % 3)
     x3 = num/(10**exp3)
-
-    if exp3 >= -24 and exp3 <= 24 and exp3 != 0: exp3_text = 'yzafpnum kMGTPEZY'[ ( exp3 - (-24)) / 3]
+    if exp3 >= -24 and exp3 <= 24 and exp3 != 0:
+        idxsi =  int(( exp3 - (-24)) / 3)
+        exp3_text = 'yzafpnum kMGTPEZY'[idxsi]
     elif exp3 == 0: exp3_text = ''
     else: exp3_text = 'e%s' % exp3
     return '%s%s%s' % (sgn,round(x3,2),exp3_text)
 
-def statistics(ls):
+def statistics(ls, base2=False):
     length = len(ls)
     totsum = sum(ls)
     mean = 1.0*totsum/length
@@ -221,7 +227,9 @@ def statistics(ls):
         sigma = math.sqrt(1.0*sum([(mean-v)*(mean-v) for v in ls])/(length-1))
     maximum, minimum = max(ls), min(ls)
     return (length, mean, sigma, totsum, minimum, maximum, \
-           hum(length), hum(mean), hum(sigma), hum(totsum), hum(minimum), hum(maximum))
+           hum(length), hum(mean, base2=base2), \
+           hum(sigma, base2=base2), hum(totsum, base2=base2), \
+           hum(minimum, base2=base2), hum(maximum, base2=base2))
 
 def makehisto(ls):
     d = dict(Counter(ls))
@@ -256,10 +264,16 @@ def get_table(vals, do_unicode=True, width=80):
     return tab
 
 if __name__ == "__main__":
-    do_ascii = not sys.stdout.isatty()
-    nums, words = [], []
+    base2 = False
     column = -1
-    if(len(sys.argv) > 1): column = int(sys.argv[-1])
+    if "-b" in sys.argv:
+        base2 = True
+        sys.argv.remove("-b")
+    if(len(sys.argv) > 1): 
+        column = int(sys.argv[-1])
+
+    do_ascii = False
+    nums, words = [], []
     for item in sys.stdin:
         item = item.strip()
         if not item: continue
@@ -281,12 +295,12 @@ if __name__ == "__main__":
                 makehisto(words)
             else:
                 get_table(words).print_table(ljustall=True, show_colnames=False)
-    else: 
+    else:
         print("""
-    count:  {0} ({6})
+    length: {0} ({6})
     mean:   {1} ({7})
-    std:    {2} ({8})
+    sigma:  {2} ({8})
     sum:    {3} ({9})
     min:    {4} ({10})
     max:    {5} ({11})
-        """.format(*statistics(nums)))
+        """.format(*statistics(nums, base2=base2)))
