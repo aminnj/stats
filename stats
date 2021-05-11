@@ -272,7 +272,7 @@ if __name__ == "__main__":
     if(len(sys.argv) > 1): 
         column = int(sys.argv[-1])
 
-    do_ascii = False
+    do_ascii = not sys.stdout.isatty()
     nums, words = [], []
     for item in sys.stdin:
         item = item.strip()

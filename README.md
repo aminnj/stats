@@ -24,10 +24,10 @@ $ seq 1 10000 | stats
 
 $ hadoop fs -du /cms/store/user/$USER/ | stats 1
 
-    count:  25 (25.0)
-    mean:   6.31906744597e+11 (631.91G)
-    std:    1.53431821471e+12 (1.53T)
-    sum:    1.57976686149e+13 (15.8T)
+    length: 26 (26.0)
+    mean:   6.4025619941e+11 (640.26G)
+    sigma:  1.54554065089e+12 (1.55T)
+    sum:    1.66466611847e+13 (16.65T)
     min:    5207981.0 (5.21M)
     max:    5.34309043154e+12 (5.34T)
 
@@ -60,7 +60,7 @@ $ ls -l ~/public_html | stats -3
 │ Dec  │ █ (1)                │
 ╰──────┴──────────────────────╯
 
-# Only ascii if output is piped
+# Only ascii if output is piped/redirected
 $ condor_q -af MATCH_EXP_JOB_Site | stats > temp.txt ; cat temp.txt
 UCSD       | **** (4)
 Vanderbilt | ** (2)
