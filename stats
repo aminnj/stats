@@ -4,15 +4,19 @@
 import math
 import sys
 import os
+
 try:
     from collections import Counter
 except:
+
     def Counter(vals):
         d = {}
         for v in vals:
-            if v not in d: d[v] = 0
+            if v not in d:
+                d[v] = 0
             d[v] += 1
         return d
+
 
 PY3 = False
 if sys.version_info[0] >= 3:
@@ -21,34 +25,47 @@ if sys.version_info[0] >= 3:
 
 if PY3:
     unichr = chr
+
     def to_str(s):
         return str(s)
-else:
-    def to_str(s):
-        return str(s.encode("utf-8"))
 
+
+else:
+
+    def to_str(s):
+        try:
+            s = s.encode("utf-8")
+        except:
+            pass
+        return s
+
+
+CHARHEIGHT = 2
 lookup_chars = {
-        (0,0): u" ",
-        (1,1): u"\u2584",
-        (2,2): u"\u2588",
-        (0,1): u"\u2597",
-        (0,2): u"\u2590",
-        (1,0): u"\u2596",
-        (1,2): u"\u259F",
-        (2,0): u"\u258C",
-        (2,1): u"\u2599",
-        }
+    (0, 0): u" ",
+    (1, 1): u"\u2584",
+    (2, 2): u"\u2588",
+    (0, 1): u"\u2597",
+    (0, 2): u"\u2590",
+    (1, 0): u"\u2596",
+    (1, 2): u"\u259F",
+    (2, 0): u"\u258C",
+    (2, 1): u"\u2599",
+}
+
 
 def visible_len(val):
-    try: val = val.decode("utf-8")
-    except: pass
+    try:
+        val = val.decode("utf-8")
+    except:
+        pass
     lenval = len(val)
     if "\033" in val:
-        lenval -= sum(map(len,re.findall(r"\033\[[0-9\;]+m",val)))
+        lenval -= sum(map(len, re.findall(r"\033\[[0-9\;]+m", val)))
     return lenval
 
-class Table():
 
+class Table:
     def __init__(self):
         self.matrix = []
         self.colnames = []
@@ -56,82 +73,43 @@ class Table():
         self.rowcolors = {}
         self.extra_padding = 1
         self.d_style = {}
-        self.theme = ""
         self.set_theme_fancy()
-        self.use_color = True
 
     def shorten_string(self, val, length):
-        return val[:length//2-1] + "..." + val[-length//2+2:]
-    def fmt_string(self, val, length, fill_char=" ", justify="c", bold=False, offcolor=False, color=None):
+        return val[: length // 2 - 1] + "..." + val[-length // 2 + 2 :]
+
+    def fmt_string(self, val, length, fill_char=" "):
         ret = ""
         val = to_str(val)
         lenval = visible_len(val)
 
-        if lenval > length: val = self.shorten_string(val, length)
-        if justify == "l":
-            nr = (length-lenval-1)
-            ret = " " + val + fill_char*nr
-        elif justify == "r": ret = val.rjust(length, fill_char)
-        elif justify == "c":
-            nl = (length-lenval)//2
-            nr = (length-lenval)-(length-lenval)//2
-            ret = fill_char*nl + val + fill_char*nr
-        if bold and self.use_color:
-            ret = '\033[1m' + ret + '\033[0m'
-        if offcolor and self.use_color:
-            ret = '\033[2m' + ret + '\033[0m'
-        if self.use_color:
-            if color == "green":
-                ret = '\033[00;32m' + ret + '\033[0m'
-            if color == "blue":
-                ret = '\033[00;34m' + ret + '\033[0m'
-            if color == "red":
-                ret = '\033[00;31m' + ret + '\033[0m'
-            if color == "lightblue":
-                ret = '\033[38;5;117m' + ret + '\033[0m'
+        if lenval > length:
+            val = self.shorten_string(val, length)
+        nr = length - lenval - 1
+        ret = " " + val + fill_char * nr
         return ret
 
     def set_theme_fancy(self):
-        self.theme = "fancy"
-        self.d_style["INNER_HORIZONTAL"] = '\033(0\x71\033(B'
-        self.d_style["INNER_INTERSECT"] = '\033(0\x6e\033(B'
-        self.d_style["INNER_VERTICAL"] = '\033(0\x78\033(B'
-        self.d_style["OUTER_LEFT_INTERSECT"] = '\033(0\x74\033(B'
+        self.d_style["INNER_HORIZONTAL"] = "\033(0\x71\033(B"
+        self.d_style["INNER_INTERSECT"] = "\033(0\x6e\033(B"
+        self.d_style["INNER_VERTICAL"] = "\033(0\x78\033(B"
+        self.d_style["OUTER_LEFT_INTERSECT"] = "\033(0\x74\033(B"
         self.d_style["OUTER_LEFT_VERTICAL"] = self.d_style["INNER_VERTICAL"]
-        self.d_style["OUTER_RIGHT_INTERSECT"] = '\033(0\x75\033(B'
+        self.d_style["OUTER_RIGHT_INTERSECT"] = "\033(0\x75\033(B"
         self.d_style["OUTER_RIGHT_VERTICAL"] = self.d_style["INNER_VERTICAL"]
         self.d_style["OUTER_BOTTOM_HORIZONTAL"] = self.d_style["INNER_HORIZONTAL"]
-        self.d_style["OUTER_BOTTOM_INTERSECT"] = '\033(0\x76\033(B'
-        self.d_style["OUTER_BOTTOM_LEFT"] = '\033(0\x6d\033(B'
-        self.d_style["OUTER_BOTTOM_RIGHT"] = '\033(0\x6a\033(B'
+        self.d_style["OUTER_BOTTOM_INTERSECT"] = "\033(0\x76\033(B"
+        self.d_style["OUTER_BOTTOM_LEFT"] = "\033(0\x6d\033(B"
+        self.d_style["OUTER_BOTTOM_RIGHT"] = "\033(0\x6a\033(B"
         self.d_style["OUTER_TOP_HORIZONTAL"] = self.d_style["INNER_HORIZONTAL"]
-        self.d_style["OUTER_TOP_INTERSECT"] = '\033(0\x77\033(B'
-        self.d_style["OUTER_TOP_LEFT"] = '\033(0\x6c\033(B'
-        self.d_style["OUTER_TOP_RIGHT"] = '\033(0\x6b\033(B'
+        self.d_style["OUTER_TOP_INTERSECT"] = "\033(0\x77\033(B"
+        self.d_style["OUTER_TOP_LEFT"] = "\033(0\x6c\033(B"
+        self.d_style["OUTER_TOP_RIGHT"] = "\033(0\x6b\033(B"
 
-        self.d_style["OUTER_TOP_LEFT"] = '╭'
-        self.d_style["OUTER_TOP_RIGHT"] = '╮'
-        self.d_style["OUTER_BOTTOM_LEFT"] = '╰'
-        self.d_style["OUTER_BOTTOM_RIGHT"] = '╯'
-
-    def set_theme_basic(self):
-        self.theme = "basic"
-        self.use_color = False
-        self.d_style["INNER_HORIZONTAL"] = '-'
-        self.d_style["INNER_INTERSECT"] = '+'
-        self.d_style["INNER_VERTICAL"] = '|'
-        self.d_style["OUTER_LEFT_INTERSECT"] = '|'
-        self.d_style["OUTER_LEFT_VERTICAL"] = '|'
-        self.d_style["OUTER_RIGHT_INTERSECT"] = '+'
-        self.d_style["OUTER_RIGHT_VERTICAL"] = '|'
-        self.d_style["OUTER_BOTTOM_HORIZONTAL"] = '-'
-        self.d_style["OUTER_BOTTOM_INTERSECT"] = '+'
-        self.d_style["OUTER_BOTTOM_LEFT"] = '+'
-        self.d_style["OUTER_BOTTOM_RIGHT"] = '+'
-        self.d_style["OUTER_TOP_HORIZONTAL"] = '-'
-        self.d_style["OUTER_TOP_INTERSECT"] = '+'
-        self.d_style["OUTER_TOP_LEFT"] = '+'
-        self.d_style["OUTER_TOP_RIGHT"] = '+'
+        self.d_style["OUTER_TOP_LEFT"] = "╭"
+        self.d_style["OUTER_TOP_RIGHT"] = "╮"
+        self.d_style["OUTER_BOTTOM_LEFT"] = "╰"
+        self.d_style["OUTER_BOTTOM_RIGHT"] = "╯"
 
     def add_row(self, row, color=None):
         self.matrix.append(row)
@@ -141,13 +119,15 @@ class Table():
     def update(self):
         if not self.colnames:
             if self.matrix:
-                self.colnames = range(1,len(self.matrix[0])+1)
+                self.colnames = range(1, len(self.matrix[0]) + 1)
         if self.matrix:
             for ic, cname in enumerate(self.colnames):
-                self.colsizes.append( max(
-                    max([visible_len(to_str(r[ic])) for r in self.matrix])+2,
-                    len(str(cname))+2
-                    ) )
+                self.colsizes.append(
+                    max(
+                        max([visible_len(to_str(r[ic])) for r in self.matrix]) + 2,
+                        len(str(cname)) + 2,
+                    )
+                )
 
     def get_table(self, **kwargs):
         return "".join(self.get_table_strings(**kwargs))
@@ -155,123 +135,162 @@ class Table():
     def print_table(self, **kwargs):
         print(self.get_table(**kwargs))
 
-    def get_table_strings(self, leftpad=0, bold_title=True, show_alternating=False, ljustall=True, show_colnames=False):
+    def get_table_strings(self, leftpad=0):
         self.update()
         nrows = len(self.matrix) + 1
 
-        for irow,row in enumerate([self.colnames]+self.matrix):
-            yield " "*leftpad
+        for irow, row in enumerate([self.colnames] + self.matrix):
+            yield " " * leftpad
 
             # line at very top
             if irow == 0:
                 yield self.d_style["OUTER_TOP_LEFT"]
-                for icol,col in enumerate(row):
-                    yield self.d_style["OUTER_TOP_HORIZONTAL"]*(self.colsizes[icol]+self.extra_padding)
-                    if icol != len(row)-1: yield self.d_style["OUTER_TOP_INTERSECT"]
-                yield self.d_style["OUTER_TOP_RIGHT"]+"\n"
+                for icol, col in enumerate(row):
+                    yield self.d_style["OUTER_TOP_HORIZONTAL"] * (
+                        self.colsizes[icol] + self.extra_padding
+                    )
+                    if icol != len(row) - 1:
+                        yield self.d_style["OUTER_TOP_INTERSECT"]
+                yield self.d_style["OUTER_TOP_RIGHT"] + "\n"
 
-            if not show_colnames and irow == 0: continue
+            if irow == 0:
+                continue
 
             # lines separating columns
             yield self.d_style["OUTER_LEFT_VERTICAL"]
-            oc = False if not show_alternating else (irow%2==1 )
-            bold = False if not bold_title else (irow==0)
-            color = self.rowcolors.get(irow,None)
-            if irow == 0: color = "lightblue"
-            for icol,col in enumerate(row):
-                j = "l" if icol == 0 else "c"
-                if ljustall: j = "l"
-                yield self.fmt_string(col, self.colsizes[icol]+self.extra_padding, justify=j, bold=bold,offcolor=oc,color=color)
-                if icol != len(row)-1: yield self.d_style["INNER_VERTICAL"]
-            yield self.d_style["OUTER_RIGHT_VERTICAL"]+"\n"
+            for icol, col in enumerate(row):
+                yield self.fmt_string(col, self.colsizes[icol] + self.extra_padding)
+                if icol != len(row) - 1:
+                    yield self.d_style["INNER_VERTICAL"]
+            yield self.d_style["OUTER_RIGHT_VERTICAL"] + "\n"
 
             # line at very bottom
-            if irow == nrows-1:
-                yield " "*leftpad
+            if irow == nrows - 1:
+                yield " " * leftpad
                 yield self.d_style["OUTER_BOTTOM_LEFT"]
-                for icol,col in enumerate(row):
-                    yield self.d_style["OUTER_BOTTOM_HORIZONTAL"]*(self.colsizes[icol]+self.extra_padding)
-                    if icol != len(row)-1: yield self.d_style["OUTER_BOTTOM_INTERSECT"]
+                for icol, col in enumerate(row):
+                    yield self.d_style["OUTER_BOTTOM_HORIZONTAL"] * (
+                        self.colsizes[icol] + self.extra_padding
+                    )
+                    if icol != len(row) - 1:
+                        yield self.d_style["OUTER_BOTTOM_INTERSECT"]
                 yield self.d_style["OUTER_BOTTOM_RIGHT"]
+
 
 def hum(num, base2=False):
     if base2:
-        if num < 1024**1:   return ('%.2f B'   % (num/1024**0))
-        elif num < 1024**2: return ('%.2f KiB' % (num/1024**1))
-        elif num < 1024**3: return ('%.2f MiB' % (num/1024**2))
-        elif num < 1024**4: return ('%.2f GiB' % (num/1024**3))
-        elif num < 1024**5: return ('%.2f TiB' % (num/1024**4))
-        elif num < 1024**6: return ('%.2f PiB' % (num/1024**5))
-        else: return '%.3g' % num
+        if num < 1024 ** 1:
+            return "%.2f B" % (num / 1024 ** 0)
+        elif num < 1024 ** 2:
+            return "%.2f KiB" % (num / 1024 ** 1)
+        elif num < 1024 ** 3:
+            return "%.2f MiB" % (num / 1024 ** 2)
+        elif num < 1024 ** 4:
+            return "%.2f GiB" % (num / 1024 ** 3)
+        elif num < 1024 ** 5:
+            return "%.2f TiB" % (num / 1024 ** 4)
+        elif num < 1024 ** 6:
+            return "%.2f PiB" % (num / 1024 ** 5)
+        else:
+            return "%.3g" % num
     # stolen from http://stackoverflow.com/questions/17973278/python-decimal-engineering-notation-for-mili-10e-3-and-micro-10e-6
-    sgn = ''
-    if num < 0: num, sgn = -num, '-'
-    try: exp = int(math.floor(math.log10(num)))
-    except: exp = 0
-    exp3 = exp-(exp % 3)
-    x3 = num/(10**exp3)
+    sgn = ""
+    if num < 0:
+        num, sgn = -num, "-"
+    try:
+        exp = int(math.floor(math.log10(num)))
+    except:
+        exp = 0
+    exp3 = exp - (exp % 3)
+    x3 = num / (10 ** exp3)
     if exp3 >= -24 and exp3 <= 24 and exp3 != 0:
-        idxsi =  int(( exp3 - (-24)) / 3)
-        exp3_text = 'yzafpnum kMGTPEZY'[idxsi]
-    elif exp3 == 0: exp3_text = ''
-    else: exp3_text = 'e%s' % exp3
-    return '%s%s%s' % (sgn,round(x3,2),exp3_text)
+        idxsi = int((exp3 - (-24)) / 3)
+        exp3_text = "yzafpnum kMGTPEZY"[idxsi]
+    elif exp3 == 0:
+        exp3_text = ""
+    else:
+        exp3_text = "e%s" % exp3
+    return "%s%s%s" % (sgn, round(x3, 2), exp3_text)
+
 
 def statistics(ls, base2=False):
     length = len(ls)
     totsum = sum(ls)
-    mean = 1.0*totsum/length
+    mean = 1.0 * totsum / length
     if length == 1:
         sigma = float("nan")
     else:
-        sigma = math.sqrt(1.0*sum([(mean-v)*(mean-v) for v in ls])/(length-1))
+        sigma = math.sqrt(
+            1.0 * sum([(mean - v) * (mean - v) for v in ls]) / (length - 1)
+        )
     maximum, minimum = max(ls), min(ls)
-    return (length, mean, sigma, totsum, minimum, maximum, \
-           hum(length), hum(mean, base2=base2), \
-           hum(sigma, base2=base2), hum(totsum, base2=base2), \
-           hum(minimum, base2=base2), hum(maximum, base2=base2))
+    return (
+        length,
+        mean,
+        sigma,
+        totsum,
+        minimum,
+        maximum,
+        hum(length),
+        hum(mean, base2=base2),
+        hum(sigma, base2=base2),
+        hum(totsum, base2=base2),
+        hum(minimum, base2=base2),
+        hum(maximum, base2=base2),
+    )
+
 
 def makehisto(ls):
     d = dict(Counter(ls))
     maxval = max([d[k] for k in d.keys()])
     maxstrlen = max([len(k) for k in d.keys()])
-    scaleto=80-maxstrlen
+    scaleto = 80 - maxstrlen
     for w in sorted(d, key=d.get, reverse=True):
         strbuff = "%%-%is | %%s (%%i)" % (maxstrlen)
-        if(maxval < scaleto):
+        if maxval < scaleto:
             print(strbuff % (w, "*" * d[w], d[w]))
-        else: # scale to scaleto width
-            print(strbuff % (w, "*" * max(1,int(float(scaleto)*d[w]/maxval)), d[w]))
+        else:  # scale to scaleto width
+            print(
+                strbuff % (w, "*" * max(1, int(float(scaleto) * d[w] / maxval)), d[w])
+            )
+
 
 def get_table(vals, do_unicode=True, width=80):
     d = dict(Counter(vals))
     maxval = max([d[k] for k in d.keys()])
+
     def shorten(label):
         return label[:50]
+
     maxstrlen = max([len(shorten(k)) for k in d.keys()])
-    scaleto=width-maxstrlen
+    scaleto = width - maxstrlen
     fillchar = "*"
     if do_unicode:
         fillchar = unichr(0x2588)
         if not PY3:
-            fillchar = fillchar.encode('utf-8')
+            fillchar = fillchar.encode("utf-8")
     tab = Table()
     for w in sorted(d, key=d.get, reverse=True):
-        nfill = d[w] if maxval < scaleto else max(1,int(float(scaleto)*d[w]/maxval))
-        strbuff = "{0} ({1})".format(fillchar*nfill,d[w])
+        nfill = (
+            d[w] if maxval < scaleto else max(1, int(float(scaleto) * d[w] / maxval))
+        )
+        strbuff = "{0} ({1})".format(fillchar * nfill, d[w])
         shortw = shorten(w)
-        tab.add_row([shortw,strbuff])
+        tab.add_row([shortw, strbuff])
     return tab
 
-def discretize_N(x,N=2):
+
+def discretize_N(x, N=2):
     """
     transform float `x` from [0.,1.] to int [0,N]
     """
-    return int((max(x,0.)+(1./(2.*N)))*N)
+    return int((max(x, 0.0) + (1.0 / (2.0 * N))) * N)
+
 
 def normalize(vals, to=1):
     m = max(vals)
-    return [to*v/m for v in vals]
+    return [to * v / m for v in vals]
+
 
 def get_pairs(vals):
     """
@@ -280,11 +299,12 @@ def get_pairs(vals):
     a 0 is padded at the end
     """
     if len(vals) % 2 == 1:
-        vals = vals + [0.]
-    pairs = list(zip(vals[::2],vals[1::2]))
+        vals = vals + [0.0]
+    pairs = list(zip(vals[::2], vals[1::2]))
     return pairs
 
-def pair_to_charcodes(ndotsL,ndotsR,charheight=2):
+
+def pair_to_charcodes(ndotsL, ndotsR):
     """
     takes pair of dots for left and right columns and converts
     into list of character codes to draw, so
@@ -300,48 +320,52 @@ def pair_to_charcodes(ndotsL,ndotsR,charheight=2):
     """
     pairs_out = []
     while ndotsL > 0 or ndotsR > 0:
-        takeL = min(ndotsL,charheight)
-        takeR = min(ndotsR,charheight)
-        pairs_out.append((
-            discretize_N(takeL/charheight, N=charheight),
-            discretize_N(takeR/charheight, N=charheight),
-            ))
+        takeL = min(ndotsL, CHARHEIGHT)
+        takeR = min(ndotsR, CHARHEIGHT)
+        pairs_out.append(
+            (
+                discretize_N(takeL / CHARHEIGHT, N=CHARHEIGHT),
+                discretize_N(takeR / CHARHEIGHT, N=CHARHEIGHT),
+            )
+        )
         ndotsL -= takeL
         ndotsR -= takeR
     if not pairs_out:
-        pairs_out.append( (0,0) )
+        pairs_out.append((0, 0))
     return pairs_out
 
-def pad_and_transpose(mat, fill_elem=(0,0)):
+
+def pad_and_transpose(mat, fill_elem=(0, 0)):
     """
     Space pad and transpose a list of lists
     """
-    maxheight = max(map(len,mat))
-    mat = [col+([fill_elem]*max(maxheight-len(col),0)) for col in mat]
+    maxheight = max(map(len, mat))
+    mat = [col + ([fill_elem] * max(maxheight - len(col), 0)) for col in mat]
     rows = list(zip(*mat))[::-1]
     return rows
 
+
 def print_unicode_hist(vals, nbins):
 
-    low, high = min(vals)-1e-6, max(vals)+1e-6
-    d = Counter([int((v-low)/(high-low)*nbins) for v in vals])
-    counts = [d.get(i,0) for i in range(nbins)]
+    low, high = min(vals) - 1e-6, max(vals) + 1e-6
+    d = Counter([int((v - low) / (high - low) * nbins) for v in vals])
+    counts = [d.get(i, 0) for i in range(nbins)]
 
     # counts = [math.log10(c+1) for c in counts]
 
-    counts = normalize(counts, to=5.)
+    counts = normalize(counts, to=5.0)
     pairs = get_pairs(counts)
     charcode_pairs = []
     for pair in pairs:
-        nleft = pair[0]*2
-        nright = pair[1]*2
-        charcode_pairs.append(pair_to_charcodes(nleft, nright, 2))
+        nleft = pair[0] * CHARHEIGHT
+        nright = pair[1] * CHARHEIGHT
+        charcode_pairs.append(pair_to_charcodes(nleft, nright))
     mat = pad_and_transpose(charcode_pairs)
 
     tab = Table()
     for row in mat:
         tab.add_row(["".join([lookup_chars[v] for v in row])])
-    tab.print_table(ljustall=True, show_colnames=False, leftpad=3)
+    tab.print_table(leftpad=3)
 
 
 if __name__ == "__main__":
@@ -350,41 +374,52 @@ if __name__ == "__main__":
     if "-b" in sys.argv:
         base2 = True
         sys.argv.remove("-b")
-    if(len(sys.argv) > 1): 
+    if len(sys.argv) > 1:
         column = int(sys.argv[-1])
 
     do_ascii = not sys.stdout.isatty()
     nums, words = [], []
     for item in sys.stdin:
         item = item.strip()
-        if not item: continue
+        if not item:
+            continue
         try:
-            if(column == -1): nums.append(float(item))
-            else: nums.append(float(item.split()[column-1]))
+            if column == -1:
+                nums.append(float(item))
+            else:
+                nums.append(float(item.split()[column - 1]))
         except:
             try:
-                if(column == -1): words.append(item)
-                else: words.append(item.split()[column-1])
-            except: pass
-        else: pass
+                if column == -1:
+                    words.append(item)
+                else:
+                    words.append(item.split()[column - 1])
+            except:
+                pass
+        else:
+            pass
 
-    if(len(nums) < 1):
-        if(len(words) < 1):
+    if len(nums) < 1:
+        if len(words) < 1:
             print("No inputs!")
         else:
             if do_ascii:
                 makehisto(words)
             else:
-                get_table(words).print_table(ljustall=True, show_colnames=False)
+                get_table(words).print_table()
     else:
-        print("""
+        print(
+            """
     length: {0} ({6})
     mean:   {1} ({7})
     std:    {2} ({8})
     sum:    {3} ({9})
     min:    {4} ({10})
     max:    {5} ({11})
-        """.format(*statistics(nums, base2=base2)))
+        """.format(
+                *statistics(nums, base2=base2)
+            )
+        )
 
         nbins = 50
         print_unicode_hist(nums, nbins)
