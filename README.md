@@ -1,6 +1,4 @@
-### stats
-
-Summarize piped numbers or strings.
+### `stats`: summarize piped numbers or strings
 Requires Python 2.6 or greater, with no other dependencies.
 ```bash
 curl -O https://raw.githubusercontent.com/aminnj/stats/main/stats && chmod u+x stats
