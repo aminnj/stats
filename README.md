@@ -42,6 +42,14 @@ $ hadoop fs -du /cms/store/user/$USER/ | stats 1 -b
 
 ```
 
+A thumbnail histogram is also drawn to visually highlight any irregularities.
+```bash
+$ for x in {1..1000}; do echo $((RANDOM + RANDOM)); done | stats
+```
+<img src="images/histexample1.png" width="250px" />
+
+
+
 If strings are detected, their counts are summarized (similar to `uniq -c`) with bars.
 ```bash
 $ ls -l ~/public_html | stats -3

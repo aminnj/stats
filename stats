@@ -18,8 +18,26 @@ PY3 = False
 if sys.version_info[0] >= 3:
     PY3 = True
 
+
 if PY3:
     unichr = chr
+    def to_str(s):
+        return str(s)
+else:
+    def to_str(s):
+        return str(s.encode("utf-8"))
+
+lookup_chars = {
+        (0,0): u" ",
+        (1,1): u"\u2584",
+        (2,2): u"\u2588",
+        (0,1): u"\u2597",
+        (0,2): u"\u2590",
+        (1,0): u"\u2596",
+        (1,2): u"\u259F",
+        (2,0): u"\u258C",
+        (2,1): u"\u2599",
+        }
 
 def visible_len(val):
     try: val = val.decode("utf-8")
@@ -35,7 +53,6 @@ class Table():
         self.matrix = []
         self.colnames = []
         self.colsizes = []
-        self.hlines = []
         self.rowcolors = {}
         self.extra_padding = 1
         self.d_style = {}
@@ -47,7 +64,7 @@ class Table():
         return val[:length//2-1] + "..." + val[-length//2+2:]
     def fmt_string(self, val, length, fill_char=" ", justify="c", bold=False, offcolor=False, color=None):
         ret = ""
-        val = str(val)
+        val = to_str(val)
         lenval = visible_len(val)
 
         if lenval > length: val = self.shorten_string(val, length)
@@ -128,7 +145,7 @@ class Table():
         if self.matrix:
             for ic, cname in enumerate(self.colnames):
                 self.colsizes.append( max(
-                    max([visible_len(str(r[ic])) for r in self.matrix])+2,
+                    max([visible_len(to_str(r[ic])) for r in self.matrix])+2,
                     len(str(cname))+2
                     ) )
 
@@ -138,13 +155,12 @@ class Table():
     def print_table(self, **kwargs):
         print(self.get_table(**kwargs))
 
-    def get_table_strings(self, bold_title=True, show_row_separators=False, show_alternating=False, ljustall=True, show_colnames=False):
+    def get_table_strings(self, leftpad=0, bold_title=True, show_alternating=False, ljustall=True, show_colnames=False):
         self.update()
         nrows = len(self.matrix) + 1
-        draw_row_separators = True
-        draw_hlines = True
 
         for irow,row in enumerate([self.colnames]+self.matrix):
+            yield " "*leftpad
 
             # line at very top
             if irow == 0:
@@ -169,30 +185,14 @@ class Table():
                 if icol != len(row)-1: yield self.d_style["INNER_VERTICAL"]
             yield self.d_style["OUTER_RIGHT_VERTICAL"]+"\n"
 
-            # lines separating rows
-            if draw_row_separators and ((show_row_separators and (irow < nrows-1)) or (irow == 0)):
-                yield self.d_style["OUTER_LEFT_INTERSECT"]
-                for icol,col in enumerate(row):
-                    yield self.d_style["INNER_HORIZONTAL"]*(self.colsizes[icol]+self.extra_padding)
-                    if icol != len(row)-1: yield self.d_style["INNER_INTERSECT"]
-                yield self.d_style["OUTER_RIGHT_INTERSECT"]
-                yield "\n"
-
             # line at very bottom
             if irow == nrows-1:
+                yield " "*leftpad
                 yield self.d_style["OUTER_BOTTOM_LEFT"]
                 for icol,col in enumerate(row):
                     yield self.d_style["OUTER_BOTTOM_HORIZONTAL"]*(self.colsizes[icol]+self.extra_padding)
                     if icol != len(row)-1: yield self.d_style["OUTER_BOTTOM_INTERSECT"]
                 yield self.d_style["OUTER_BOTTOM_RIGHT"]
-            else:
-                # extra hlines
-                if draw_hlines and (irow in self.hlines):
-                    yield self.d_style["OUTER_LEFT_INTERSECT"]
-                    for icol,col in enumerate(row):
-                        yield self.d_style["OUTER_TOP_HORIZONTAL"]*(self.colsizes[icol]+self.extra_padding)
-                        if icol != len(row)-1: yield self.d_style["INNER_INTERSECT"]
-                    yield self.d_style["OUTER_RIGHT_INTERSECT"]+"\n"
 
 def hum(num, base2=False):
     if base2:
@@ -263,6 +263,87 @@ def get_table(vals, do_unicode=True, width=80):
         tab.add_row([shortw,strbuff])
     return tab
 
+def discretize_N(x,N=2):
+    """
+    transform float `x` from [0.,1.] to int [0,N]
+    """
+    return int((max(x,0.)+(1./(2.*N)))*N)
+
+def normalize(vals, to=1):
+    m = max(vals)
+    return [to*v/m for v in vals]
+
+def get_pairs(vals):
+    """
+    takes 1D list `vals` and returns 1D list of pairs.
+    if input does not have an even number of elements,
+    a 0 is padded at the end
+    """
+    if len(vals) % 2 == 1:
+        vals = vals + [0.]
+    pairs = list(zip(vals[::2],vals[1::2]))
+    return pairs
+
+def pair_to_charcodes(ndotsL,ndotsR,charheight=2):
+    """
+    takes pair of dots for left and right columns and converts
+    into list of character codes to draw, so
+    0 0 -> [(0,0)]
+    4 4 -> [(4,4)]
+    5 4 -> [(4,4), (1,0)]
+    7 9 -> [(4,4), (3,4), (0,1)]
+    9 1 -> [(4,1), (4,0), (1,0)]
+    For example, 9 dots on the left and 1 dot on the right
+    means draw a character with 4 dots on the left, 1 on right
+    then 4 dots on left, 0 on right, and then char with 1 dot
+    on left and 0 on right
+    """
+    pairs_out = []
+    while ndotsL > 0 or ndotsR > 0:
+        takeL = min(ndotsL,charheight)
+        takeR = min(ndotsR,charheight)
+        pairs_out.append((
+            discretize_N(takeL/charheight, N=charheight),
+            discretize_N(takeR/charheight, N=charheight),
+            ))
+        ndotsL -= takeL
+        ndotsR -= takeR
+    if not pairs_out:
+        pairs_out.append( (0,0) )
+    return pairs_out
+
+def pad_and_transpose(mat, fill_elem=(0,0)):
+    """
+    Space pad and transpose a list of lists
+    """
+    maxheight = max(map(len,mat))
+    mat = [col+([fill_elem]*max(maxheight-len(col),0)) for col in mat]
+    rows = list(zip(*mat))[::-1]
+    return rows
+
+def print_unicode_hist(vals, nbins):
+
+    low, high = min(vals)-1e-6, max(vals)+1e-6
+    d = Counter([int((v-low)/(high-low)*nbins) for v in vals])
+    counts = [d.get(i,0) for i in range(nbins)]
+
+    # counts = [math.log10(c+1) for c in counts]
+
+    counts = normalize(counts, to=5.)
+    pairs = get_pairs(counts)
+    charcode_pairs = []
+    for pair in pairs:
+        nleft = pair[0]*2
+        nright = pair[1]*2
+        charcode_pairs.append(pair_to_charcodes(nleft, nright, 2))
+    mat = pad_and_transpose(charcode_pairs)
+
+    tab = Table()
+    for row in mat:
+        tab.add_row(["".join([lookup_chars[v] for v in row])])
+    tab.print_table(ljustall=True, show_colnames=False, leftpad=3)
+
+
 if __name__ == "__main__":
     base2 = False
     column = -1
@@ -304,3 +385,6 @@ if __name__ == "__main__":
     min:    {4} ({10})
     max:    {5} ({11})
         """.format(*statistics(nums, base2=base2)))
+
+        nbins = 50
+        print_unicode_hist(nums, nbins)
