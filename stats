@@ -376,7 +376,7 @@ def pad_and_transpose(mat, fill_elem=(0, 0)):
     return rows
 
 
-def print_unicode_hist(vals, nbins):
+def print_hist_unicode(vals, nbins):
 
     low, high = min(vals) - 1e-6, max(vals) + 1e-6
     d = Counter([int((v - low) / (high - low) * nbins) for v in vals])
@@ -398,6 +398,53 @@ def print_unicode_hist(vals, nbins):
         tab.add_row(["".join([lookup_chars[v] for v in row])])
     tab.print_table(leftpad=3)
 
+def print_hist_svg(
+    vals,
+    nbins,
+    height=100,
+    width=235,
+    padding=0.05,
+    color = "#dddddd",
+    frame=True,
+):
+
+    low, high = min(vals) - 1e-6, max(vals) + 1e-6
+    d = Counter([int((v - low) / (high - low) * nbins) for v in vals])
+    counts = [d.get(i, 0) for i in range(nbins)]
+
+    ys = [height * ( (2 * padding - 1) / max(counts) * c + (1 - padding) ) for c in counts]
+    xs = [width * ( (1 - 2 * padding) / (len(counts)-1) * e + padding) for e in range(len(counts))]
+
+    points = []
+    points.append([padding * width, height * (1 - padding)])
+    for i in range(len(xs) - 1):
+        points.append([xs[i], ys[i]])
+        points.append([xs[i + 1], ys[i]])
+    points.append([width * (1 - padding), height * (1 - padding)])
+
+    pathstr = " ".join("{},{}".format(*p) for p in points)
+
+    if frame:
+        framestr = """<rect width="{width}" height="{height}" fill="none" stroke="{color}" stroke-width="2" />""".format(
+            width=width, height=height, color=color,
+        )
+    else:
+        framestr = ""
+    source = """
+    <svg width="{width}" height="{height}" version="1.1" xmlns="http://www.w3.org/2000/svg">
+      {framestr}
+      <polyline points="{pathstr}" stroke="{color}" fill="{color}" stroke-width="0"/>
+    </svg>
+    """.format(
+        width=width,
+        framestr=framestr,
+        height=height,
+        pathstr=pathstr,
+        color=color,
+    )
+    with open(".temp.svg", "w") as fh:
+        fh.write(source)
+    os.system("convert -gravity east -extent {w}x{h} -background none .temp.svg .temp.png ; ic .temp.png".format(w=width+25, h=height))
 
 if __name__ == "__main__":
     base2 = False
@@ -452,5 +499,7 @@ if __name__ == "__main__":
             )
         )
 
-        nbins = 50
-        print_unicode_hist(nums, nbins)
+        if not do_ascii:
+            nbins = 50
+            print_hist_unicode(nums, nbins)
+            # print_hist_svg(nums, nbins)
