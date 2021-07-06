@@ -166,7 +166,7 @@ class Table:
     def print_table(self, **kwargs):
         print(self.get_table(**kwargs))
 
-    def get_table_strings(self, leftpad=0):
+    def get_table_strings(self, leftpad=0, header=None, footer=None):
         self.update()
         nrows = len(self.matrix) + 1
 
@@ -177,9 +177,12 @@ class Table:
             if irow == 0:
                 yield self.d_style["OUTER_TOP_LEFT"]
                 for icol, col in enumerate(row):
-                    yield self.d_style["OUTER_TOP_HORIZONTAL"] * (
-                        self.colsizes[icol] + self.extra_padding
-                    )
+                    if header:
+                        yield (" {0} ".format(header)).center(self.colsizes[icol] + self.extra_padding, "#").replace("#", self.d_style["OUTER_TOP_HORIZONTAL"])
+                    else:
+                        yield self.d_style["OUTER_TOP_HORIZONTAL"] * (
+                            self.colsizes[icol] + self.extra_padding
+                        )
                     if icol != len(row) - 1:
                         yield self.d_style["OUTER_TOP_INTERSECT"]
                 yield self.d_style["OUTER_TOP_RIGHT"] + "\n"
@@ -200,9 +203,12 @@ class Table:
                 yield " " * leftpad
                 yield self.d_style["OUTER_BOTTOM_LEFT"]
                 for icol, col in enumerate(row):
-                    yield self.d_style["OUTER_BOTTOM_HORIZONTAL"] * (
-                        self.colsizes[icol] + self.extra_padding
-                    )
+                    if footer:
+                        yield (" {0} ".format(footer)).center(self.colsizes[icol] + self.extra_padding, "#").replace("#", self.d_style["OUTER_BOTTOM_HORIZONTAL"])
+                    else:
+                        yield self.d_style["OUTER_BOTTOM_HORIZONTAL"] * (
+                            self.colsizes[icol] + self.extra_padding
+                        )
                     if icol != len(row) - 1:
                         yield self.d_style["OUTER_BOTTOM_INTERSECT"]
                 yield self.d_style["OUTER_BOTTOM_RIGHT"]
@@ -375,6 +381,10 @@ def pad_and_transpose(mat, fill_elem=(0, 0)):
     rows = list(zip(*mat))[::-1]
     return rows
 
+def median(v):
+    n = len(v)
+    s = sorted(v)
+    return (sum(s[n//2-1:n//2+1])/2.0, s[n//2])[n % 2] if n else None
 
 def print_hist_unicode(vals, nbins):
 
@@ -382,7 +392,16 @@ def print_hist_unicode(vals, nbins):
     d = Counter([int((v - low) / (high - low) * nbins) for v in vals])
     counts = [d.get(i, 0) for i in range(nbins)]
 
-    # counts = [math.log10(c+1) for c in counts]
+    # nvals = len(vals)
+    # binwidth = (high-low)/nbins
+    # print(0.02*nvals/binwidth)
+    # print([c for c in counts if c>0.02*nvals/binwidth])
+    # print(median(counts) < 0.1*max(counts))
+    log = False
+
+    if median(filter(lambda c: c>0, counts)) < 0.1*max(counts):
+        counts = [math.log10(c+1) for c in counts]
+        log = True
 
     counts = normalize(counts, to=5.0)
     pairs = get_pairs(counts)
@@ -396,7 +415,7 @@ def print_hist_unicode(vals, nbins):
     tab = Table()
     for row in mat:
         tab.add_row(["".join([lookup_chars[v] for v in row])])
-    tab.print_table(leftpad=3)
+    tab.print_table(leftpad=3, header=("logscale" if log else ""))
 
 def print_hist_svg(
     vals,
